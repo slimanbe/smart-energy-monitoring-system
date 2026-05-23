@@ -1,7 +1,7 @@
 # Smart Energy Monitoring System
 
 ## Description
-This project presents a real-time smart energy monitoring system based on WT32-ETH01, PZEM-004T, MQTT communication, and a Python dashboard.
+This project presents a real-time smart energy monitoring system based on WT32-ETH01, PZEM-004T, HTTp communication, and a Python dashboard.
 
 ## Features
 - Real-time voltage/current monitoring

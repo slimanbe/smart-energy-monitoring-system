@@ -1,16 +1,21 @@
 from flask import Flask, render_template_string, jsonify, request
-import requests
+import json
+from datetime import datetime
 
 app = Flask(__name__)
 
-
-ESP32_IP = "10.100.162.88"  
-
-
+# Store latest data
 latest_data = {
-    "voltage": 0.0, "current": 0.0, "power": 0.0,
-    "energy": 0.0, "frequency": 0.0, "pf": 0.0
+    "device_id": "node01",
+    "voltage": 0.0,
+    "current": 0.0,
+    "power": 0.0,
+    "energy": 0.0,
+    "frequency": 0.0,
+    "pf": 0.0,
+    "timestamp": 0
 }
+
 
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -76,7 +81,7 @@ HTML_PAGE = """
     </div>
     <div class="status">
       <span class="status-dot"></span>
-      <span id="systemStatus">HTTP System Connected</span>
+      <span id="systemStatus">System Connected</span>
     </div>
   </div>
   <div class="container">
@@ -95,11 +100,9 @@ HTML_PAGE = """
     <div class="creator">Created by mohamed benfaiza & aourane younes | students from USTHB</div>
     <div style="color: #64748b; font-size: 0.85rem; margin-top: 5px;">© 2026 FACULTY OF ELECTRICAL ENGINEERING</div>
   </div>
-
   <script>
     const maxDataPoints = 20;
     let timeLabels = [], powerData = [], currentData = [], voltageData = [], frequencyData = [];
-
     const powerCtx = document.getElementById('powerChart').getContext('2d');
     const powerChart = new Chart(powerCtx, {
       type: 'line',
@@ -112,7 +115,6 @@ HTML_PAGE = """
       },
       options: { scales: { y1: { position: 'right' } } }
     });
-
     const voltageChart = new Chart(document.getElementById('voltageChart').getContext('2d'), {
       type: 'line',
       data: {
@@ -124,8 +126,7 @@ HTML_PAGE = """
       },
       options: { scales: { y1: { position: 'right' } } }
     });
-
-   
+  
     function updateDashboard() {
       fetch('/get-latest-data')
         .then(res => res.json())
@@ -136,16 +137,19 @@ HTML_PAGE = """
           document.getElementById('energy').textContent = data.energy.toFixed(3);
           document.getElementById('frequency').textContent = data.frequency.toFixed(2);
           document.getElementById('pf').textContent = data.pf.toFixed(2);
-
+          
           const now = new Date();
           const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
-          
+         
           if (timeLabels.length >= maxDataPoints) {
             timeLabels.shift(); powerData.shift(); currentData.shift(); voltageData.shift(); frequencyData.shift();
           }
           timeLabels.push(timeStr);
-          powerData.push(data.power); currentData.push(data.current); voltageData.push(data.voltage); frequencyData.push(data.frequency);
-          
+          powerData.push(data.power); 
+          currentData.push(data.current); 
+          voltageData.push(data.voltage); 
+          frequencyData.push(data.frequency);
+         
           powerChart.update('none');
           voltageChart.update('none');
         });
@@ -156,23 +160,47 @@ HTML_PAGE = """
 </html>
 """
 
+
 @app.route('/')
 def home():
     return render_template_string(HTML_PAGE)
 
+@app.route('/data', methods=['POST'])
+def receive_data():
+    """Receive data from ESP32 via HTTP POST"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"status": "error", "message": "No data received"}), 400
+
+        # Update latest data
+        latest_data.update({
+            "device_id": data.get("device_id", "node01"),
+            "voltage": data.get("voltage", 0.0),
+            "current": data.get("current", 0.0),
+            "power": data.get("power", 0.0),
+            "energy": data.get("energy", 0.0),
+            "frequency": data.get("frequency", 0.0),
+            "pf": data.get("pf", 0.0),
+            "timestamp": data.get("timestamp", 0)
+        })
+
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Data received from {latest_data['device_id']}")
+        return jsonify({"status": "success", "message": "Data received successfully"}), 200
+
+    except Exception as e:
+        print(f"Error receiving data: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route('/get-latest-data')
 def get_latest_data():
-    global latest_data
-    try:
-        
-        response = requests.get(f"http://{ESP32_IP}/data", timeout=1.5)
-        if response.status_code == 200:
-            
-            latest_data = response.json()
-    except Exception as e:
-        print("Waiting for ESP32 data...", e)
+    """Send latest data to the dashboard"""
     return jsonify(latest_data)
 
+
 if __name__ == '__main__':
+    print("🚀usthbT Power Monitor Server Started!")
+    print("Waiting for ESP32 to send data via POST...")
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -8,7 +8,7 @@ const char* ssid = "realme C51";
 const char* password = "40042026";
 
 
-const char* serverUrl = "http://your-server-ip:5000/data";  
+const char* serverUrl = "http://10.100.162.120:5000/data";  
 
 const String deviceID = "node01";   
 

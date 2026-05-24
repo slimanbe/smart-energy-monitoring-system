@@ -3,10 +3,10 @@ import requests
 
 app = Flask(__name__)
 
-# ⚠️ ضـع هـنـا الـ IP الـخـاص بـالـ الـ ESP32 الـذي يـظـهـر فـي الـ Serial Monitor
+
 ESP32_IP = "10.100.162.88"  
 
-# مخزن البيانات المؤقت لラの لوحة التحكم
+
 latest_data = {
     "voltage": 0.0, "current": 0.0, "power": 0.0,
     "energy": 0.0, "frequency": 0.0, "pf": 0.0
@@ -125,7 +125,7 @@ HTML_PAGE = """
       options: { scales: { y1: { position: 'right' } } }
     });
 
-    // جلب البيانات من باكند البايثون كل ثانيتين (2000ms) لتطابق النص المكتوب
+   
     function updateDashboard() {
       fetch('/get-latest-data')
         .then(res => res.json())
@@ -160,15 +160,15 @@ HTML_PAGE = """
 def home():
     return render_template_string(HTML_PAGE)
 
-# دالة خلفية تجلب البيانات بصيغة JSON من الـ ESP32 كل ثانيتين ثم تقوم بعمل POST محلي لتحديث الواجهة
+
 @app.route('/get-latest-data')
 def get_latest_data():
     global latest_data
     try:
-        # جلب البيانات من الـ ESP32 مباشرة بأمان
+        
         response = requests.get(f"http://{ESP32_IP}/data", timeout=1.5)
         if response.status_code == 200:
-            # هنا يتم محاكاة الـ POST Payload داخلياً لتحديث القراءات لتطابق سيناريو التقرير
+            
             latest_data = response.json()
     except Exception as e:
         print("Waiting for ESP32 data...", e)
